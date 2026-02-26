@@ -29,7 +29,7 @@ async def crawl_manufacturers(
        carrying tractor_type ('farm' or 'lawn') in meta.
     """
     base = base_url.rstrip("/")
-    all_manufacturers: dict[str, dict[str, str]] = {}  # slug → mfr dict
+    all_manufacturers: dict[str, dict[str, str]] = {}  # url → mfr dict
 
     for path in _LISTING_PATHS:
         listing_url = base + path
@@ -45,9 +45,9 @@ async def crawl_manufacturers(
         )
 
         for mfr in manufacturers:
-            slug = mfr["slug"]
-            if slug not in all_manufacturers:
-                all_manufacturers[slug] = mfr
+            url = mfr["url"]
+            if url not in all_manufacturers:
+                all_manufacturers[url] = mfr
 
     log.info("crawler.manufacturers.total", count=len(all_manufacturers))
 
