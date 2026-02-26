@@ -304,3 +304,341 @@ async def mark_targets_in_progress(
         "UPDATE crawl_targets SET status='in_progress', updated_at=NOW() WHERE url = ANY($1::text[])",
         urls,
     )
+
+
+# ---------------------------------------------------------------------------
+# Overview structured fields
+# ---------------------------------------------------------------------------
+
+
+async def update_model_overview_fields(
+    conn: asyncpg.Connection,
+    model_id: int,
+    data: dict[str, Any],
+) -> None:
+    """Persist structured overview fields extracted from a model's overview page.
+
+    These are columns on ``tractor_models`` that are not spec rows:
+    drive_type, steering_type, brake_type, cab_description,
+    fuel_tank_l, def_tank_l.
+    Only non-None values from *data* are written; existing DB values are
+    preserved when the incoming value is None.
+    """
+    await conn.execute(
+        """
+        UPDATE tractor_models
+        SET drive_type      = COALESCE($2, drive_type),
+            steering_type   = COALESCE($3, steering_type),
+            brake_type      = COALESCE($4, brake_type),
+            cab_description = COALESCE($5, cab_description),
+            fuel_tank_l     = COALESCE($6, fuel_tank_l),
+            def_tank_l      = COALESCE($7, def_tank_l),
+            updated_at      = NOW()
+        WHERE id = $1
+        """,
+        model_id,
+        data.get("drive_type"),
+        data.get("steering_type"),
+        data.get("brake_type"),
+        data.get("cab_description"),
+        data.get("fuel_tank_l"),
+        data.get("def_tank_l"),
+    )
+
+    log.debug("pipeline.model_overview_fields_updated", model_id=model_id)
+
+
+# ---------------------------------------------------------------------------
+# Engine
+# ---------------------------------------------------------------------------
+
+
+async def upsert_model_engine(
+    conn: asyncpg.Connection,
+    model_id: int,
+    data: dict[str, Any],
+) -> None:
+    """Insert or update the model_engines row for *model_id*."""
+    await conn.execute(
+        """
+        INSERT INTO model_engines (
+            model_id, engine_manufacturer, fuel_type, cylinders, cooling,
+            displacement_ci, displacement_l,
+            bore_in, bore_mm, stroke_in, stroke_mm,
+            emissions_tier, emission_control,
+            rated_power_hp, rated_power_kw, rated_rpm,
+            torque_lbft, torque_nm, torque_rpm,
+            starter_type, starter_volts, starter_hp,
+            oil_change_hours, raw_data,
+            created_at, updated_at
+        ) VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7,
+            $8, $9, $10, $11,
+            $12, $13,
+            $14, $15, $16,
+            $17, $18, $19,
+            $20, $21, $22,
+            $23, $24,
+            NOW(), NOW()
+        )
+        ON CONFLICT (model_id) DO UPDATE
+            SET engine_manufacturer = COALESCE(EXCLUDED.engine_manufacturer, model_engines.engine_manufacturer),
+                fuel_type           = COALESCE(EXCLUDED.fuel_type,           model_engines.fuel_type),
+                cylinders           = COALESCE(EXCLUDED.cylinders,           model_engines.cylinders),
+                cooling             = COALESCE(EXCLUDED.cooling,             model_engines.cooling),
+                displacement_ci     = COALESCE(EXCLUDED.displacement_ci,     model_engines.displacement_ci),
+                displacement_l      = COALESCE(EXCLUDED.displacement_l,      model_engines.displacement_l),
+                bore_in             = COALESCE(EXCLUDED.bore_in,             model_engines.bore_in),
+                bore_mm             = COALESCE(EXCLUDED.bore_mm,             model_engines.bore_mm),
+                stroke_in           = COALESCE(EXCLUDED.stroke_in,           model_engines.stroke_in),
+                stroke_mm           = COALESCE(EXCLUDED.stroke_mm,           model_engines.stroke_mm),
+                emissions_tier      = COALESCE(EXCLUDED.emissions_tier,      model_engines.emissions_tier),
+                emission_control    = COALESCE(EXCLUDED.emission_control,    model_engines.emission_control),
+                rated_power_hp      = COALESCE(EXCLUDED.rated_power_hp,      model_engines.rated_power_hp),
+                rated_power_kw      = COALESCE(EXCLUDED.rated_power_kw,      model_engines.rated_power_kw),
+                rated_rpm           = COALESCE(EXCLUDED.rated_rpm,           model_engines.rated_rpm),
+                torque_lbft         = COALESCE(EXCLUDED.torque_lbft,         model_engines.torque_lbft),
+                torque_nm           = COALESCE(EXCLUDED.torque_nm,           model_engines.torque_nm),
+                torque_rpm          = COALESCE(EXCLUDED.torque_rpm,          model_engines.torque_rpm),
+                starter_type        = COALESCE(EXCLUDED.starter_type,        model_engines.starter_type),
+                starter_volts       = COALESCE(EXCLUDED.starter_volts,       model_engines.starter_volts),
+                starter_hp          = COALESCE(EXCLUDED.starter_hp,          model_engines.starter_hp),
+                oil_change_hours    = COALESCE(EXCLUDED.oil_change_hours,    model_engines.oil_change_hours),
+                raw_data            = EXCLUDED.raw_data,
+                updated_at          = NOW()
+        """,
+        model_id,
+        data.get("engine_manufacturer"),
+        data.get("fuel_type"),
+        data.get("cylinders"),
+        data.get("cooling"),
+        data.get("displacement_ci"),
+        data.get("displacement_l"),
+        data.get("bore_in"),
+        data.get("bore_mm"),
+        data.get("stroke_in"),
+        data.get("stroke_mm"),
+        data.get("emissions_tier"),
+        data.get("emission_control"),
+        data.get("rated_power_hp"),
+        data.get("rated_power_kw"),
+        data.get("rated_rpm"),
+        data.get("torque_lbft"),
+        data.get("torque_nm"),
+        data.get("torque_rpm"),
+        data.get("starter_type"),
+        data.get("starter_volts"),
+        data.get("starter_hp"),
+        data.get("oil_change_hours"),
+        json.dumps(data.get("raw_data") or {}),
+    )
+
+    log.debug("pipeline.engine_upserted", model_id=model_id)
+
+
+# ---------------------------------------------------------------------------
+# Transmission
+# ---------------------------------------------------------------------------
+
+
+async def upsert_model_transmission(
+    conn: asyncpg.Connection,
+    model_id: int,
+    data: dict[str, Any],
+) -> None:
+    """Persist transmission details as model_specifications rows.
+
+    Stores under spec_group 'Transmission Detail' so they don't overwrite
+    overview specs.  Existing rows in that group are replaced.
+    """
+    await conn.execute(
+        "DELETE FROM model_specifications WHERE model_id=$1 AND spec_group='Transmission Detail'",
+        model_id,
+    )
+
+    fields: list[tuple[str, str | None]] = [
+        ("Transmission", data.get("transmission_name")),
+        ("Gears", data.get("gear_type")),
+        ("Speeds diagram", data.get("speeds_image_url")),
+    ]
+
+    records = [
+        (model_id, "Transmission Detail", key, value, None, idx)
+        for idx, (key, value) in enumerate(fields)
+        if value is not None
+    ]
+
+    if records:
+        await conn.copy_records_to_table(
+            "model_specifications",
+            records=records,
+            columns=["model_id", "spec_group", "spec_key", "spec_value", "unit", "display_order"],
+        )
+
+    log.debug("pipeline.transmission_upserted", model_id=model_id)
+
+
+# ---------------------------------------------------------------------------
+# Tire options & dimensions
+# ---------------------------------------------------------------------------
+
+
+async def replace_model_tire_options(
+    conn: asyncpg.Connection,
+    model_id: int,
+    tire_options: list[dict[str, Any]],
+    dimensions: dict[str, Any],
+) -> None:
+    """Replace all tire option rows for *model_id*.
+
+    Dimension values (wheelbase, weight, etc.) are stored on the first
+    (standard) tire option row.
+    """
+    await conn.execute(
+        "DELETE FROM model_tire_options WHERE model_id = $1",
+        model_id,
+    )
+
+    if not tire_options:
+        return
+
+    records = []
+    for idx, opt in enumerate(tire_options):
+        # Attach dimensions to the first (standard) row only
+        dim = dimensions if idx == 0 else {}
+        records.append((
+            model_id,
+            opt.get("option_label") or "Standard",
+            opt.get("front_tire"),
+            opt.get("rear_tire"),
+            dim.get("wheelbase_in"),
+            dim.get("wheelbase_cm"),
+            dim.get("length_in"),
+            dim.get("length_cm"),
+            dim.get("width_in"),
+            dim.get("width_cm"),
+            dim.get("height_in"),
+            dim.get("height_cm"),
+            dim.get("weight_lbs"),
+            dim.get("weight_kg"),
+            dim.get("ground_clearance_in"),
+            dim.get("ground_clearance_cm"),
+            dim.get("front_tread_in"),
+            dim.get("front_tread_cm"),
+            dim.get("rear_tread_in"),
+            dim.get("rear_tread_cm"),
+            idx,
+        ))
+
+    await conn.copy_records_to_table(
+        "model_tire_options",
+        records=records,
+        columns=[
+            "model_id", "option_label", "front_tire", "rear_tire",
+            "wheelbase_in", "wheelbase_cm",
+            "length_in", "length_cm",
+            "width_in", "width_cm",
+            "height_in", "height_cm",
+            "weight_lbs", "weight_kg",
+            "ground_clearance_in", "ground_clearance_cm",
+            "front_tread_in", "front_tread_cm",
+            "rear_tread_in", "rear_tread_cm",
+            "display_order",
+        ],
+    )
+
+    log.debug(
+        "pipeline.tire_options_replaced",
+        model_id=model_id,
+        count=len(tire_options),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
+async def upsert_model_test(
+    conn: asyncpg.Connection,
+    model_id: int,
+    data: dict[str, Any],
+) -> None:
+    """Insert a test result row.  Does not de-duplicate by name — multiple
+    tests on the same page are all inserted."""
+    await conn.execute(
+        """
+        INSERT INTO model_tests (
+            model_id, test_name, test_date_start, test_date_end, test_url,
+            pto_max_hp, pto_max_kw, pto_max_fuel_gph,
+            pto_rated_eng_hp, pto_rated_eng_kw,
+            pto_rated_pto_hp, pto_rated_pto_kw,
+            drawbar_max_hp, drawbar_max_kw, drawbar_max_fuel_gph,
+            drawbar_max_pull_lbs, drawbar_max_pull_kg,
+            raw_data, created_at, updated_at
+        ) VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7, $8,
+            $9, $10,
+            $11, $12,
+            $13, $14, $15,
+            $16, $17,
+            $18, NOW(), NOW()
+        )
+        ON CONFLICT DO NOTHING
+        """,
+        model_id,
+        data.get("test_name"),
+        data.get("test_date_start"),
+        data.get("test_date_end"),
+        data.get("test_url"),
+        data.get("pto_max_hp"),
+        data.get("pto_max_kw"),
+        data.get("pto_max_fuel_gph"),
+        data.get("pto_rated_eng_hp"),
+        data.get("pto_rated_eng_kw"),
+        data.get("pto_rated_pto_hp"),
+        data.get("pto_rated_pto_kw"),
+        data.get("drawbar_max_hp"),
+        data.get("drawbar_max_kw"),
+        data.get("drawbar_max_fuel_gph"),
+        data.get("drawbar_max_pull_lbs"),
+        data.get("drawbar_max_pull_kg"),
+        json.dumps(data.get("raw_data") or {}),
+    )
+
+    log.debug("pipeline.test_upserted", model_id=model_id, name=data.get("test_name"))
+
+
+# ---------------------------------------------------------------------------
+# Photos
+# ---------------------------------------------------------------------------
+
+
+async def replace_model_photos(
+    conn: asyncpg.Connection,
+    model_id: int,
+    photos: list[dict[str, Any]],
+) -> None:
+    """Replace all photo rows for *model_id*."""
+    await conn.execute(
+        "DELETE FROM model_photos WHERE model_id = $1",
+        model_id,
+    )
+
+    if not photos:
+        return
+
+    records = [
+        (model_id, p["image_url"], p.get("attribution"), idx)
+        for idx, p in enumerate(photos)
+    ]
+
+    await conn.copy_records_to_table(
+        "model_photos",
+        records=records,
+        columns=["model_id", "image_url", "attribution", "display_order"],
+    )
+
+    log.debug("pipeline.photos_replaced", model_id=model_id, count=len(photos))
