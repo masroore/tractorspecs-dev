@@ -8,8 +8,9 @@ from aiolimiter import AsyncLimiter
 
 from config import settings
 from crawler.manufacturers import crawl_manufacturers
-from crawler.series import crawl_manufacturer_page
+from crawler.model_subpages import crawl_model_subpage
 from crawler.models import crawl_model_page
+from crawler.series import crawl_manufacturer_page
 from db import close_db, init_db, run_migrations
 from http_client import Fetcher
 from logger import log
@@ -31,7 +32,15 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="TractorSpecs scraper")
     parser.add_argument(
         "--type",
-        choices=["manufacturer", "model"],
+        choices=[
+            "manufacturer",
+            "model",
+            "model_engine",
+            "model_transmission",
+            "model_dimensions",
+            "model_tests",
+            "model_photos",
+        ],
         default=None,
         help="Limit processing to a single crawl target type.",
     )
@@ -71,8 +80,13 @@ async def process_pending_targets(
     Returns total number of targets processed.
     """
     crawl_fn = {
-        "manufacturer": crawl_manufacturer_page,
-        "model": crawl_model_page,
+        "manufacturer":       crawl_manufacturer_page,
+        "model":              crawl_model_page,
+        "model_engine":       crawl_model_subpage,
+        "model_transmission": crawl_model_subpage,
+        "model_dimensions":   crawl_model_subpage,
+        "model_tests":        crawl_model_subpage,
+        "model_photos":       crawl_model_subpage,
     }[target_type]
 
     processed = 0
@@ -176,7 +190,7 @@ async def main() -> None:
                 limit=args.limit,
             )
 
-        # Phase 3: Process model pages → extract & store specs
+        # Phase 3: Process model pages → extract & store specs + enqueue sub-pages
         if run_type in (None, "model"):
             await process_pending_targets(
                 pool,
@@ -184,6 +198,23 @@ async def main() -> None:
                 "model",
                 limit=args.limit,
             )
+
+        # Phase 4: Process model sub-pages (engine, transmission, dimensions, tests, photos)
+        _subpage_run_types = {
+            "model_engine",
+            "model_transmission",
+            "model_dimensions",
+            "model_tests",
+            "model_photos",
+        }
+        for sub_type in sorted(_subpage_run_types):
+            if run_type in (None, sub_type):
+                await process_pending_targets(
+                    pool,
+                    fetcher,
+                    sub_type,
+                    limit=args.limit,
+                )
 
     finally:
         await close_db(pool)
