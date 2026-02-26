@@ -2,10 +2,11 @@ services:
   db:
     image: postgres:18-alpine
     environment:
-      POSTGRES_USER: scraper
-      POSTGRES_PASSWORD: password
-      PGPASSWORD: password
-      POSTGRES_DB: tractors
+      POSTGRES_USER: ${POSTGRES_USER:-scraper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-tractors}
+      PGPORT: ${POSTGRES_PORT:-5432}
     networks:
         - webnet
     volumes:
@@ -57,8 +58,10 @@ services:
     env_file:
       - ./scraper/.env
     depends_on:
-      - db
-      - minio
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
         - webnet
     command: ["python", "main.py"]
