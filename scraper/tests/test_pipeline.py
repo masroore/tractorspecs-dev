@@ -122,6 +122,7 @@ class TestUpsertModel:
             upsert_model,
             upsert_series,
         )
+        from transformer import compute_spec_hash
 
         mfr_id = await upsert_manufacturer(
             conn, {"name": "HashCo", "slug": "hashco", "url": "/tractors/hashco/"}
@@ -129,18 +130,6 @@ class TestUpsertModel:
         series_id = await upsert_series(
             conn, mfr_id, {"name": "H Series", "slug": "h-series", "models": []}
         )
-        test_hash = "abc123def456" * 4  # 48-char fake hash (pad to 64 if needed)
-        test_hash = test_hash[:64].ljust(64, "0")
-        model_data = {
-            "name": "HashCo H1",
-            "slug": "hashco-h1",
-            "production_start_year": None,
-            "production_end_year": None,
-            "description": "",
-            "horsepower_hp": None,
-            "content_hash": test_hash,
-        }
-        model_id, _ = await upsert_model(conn, mfr_id, series_id, model_data)
         specs = [
             {
                 "group": "Engine",
@@ -150,12 +139,21 @@ class TestUpsertModel:
                 "display_order": 0,
             }
         ]
+        test_hash = compute_spec_hash(specs)
+        model_data = {
+            "name": "HashCo H1",
+            "slug": "hashco-h1",
+            "production_start_year": None,
+            "production_end_year": None,
+            "description": "",
+            "horsepower_hp": None,
+            "specs": specs,
+        }
+        model_id, _ = await upsert_model(conn, mfr_id, series_id, model_data)
         await replace_model_specs(conn, model_id, specs, test_hash)
 
-        # Second upsert with same hash — should return needs_update=False
-        _, needs_update = await upsert_model(
-            conn, mfr_id, series_id, {**model_data, "content_hash": test_hash}
-        )
+        # Second upsert with same specs → same hash → should return needs_update=False
+        _, needs_update = await upsert_model(conn, mfr_id, series_id, model_data)
         assert needs_update is False
 
 
@@ -217,10 +215,11 @@ class TestReplaceModelSpecs:
         )
 
         rows = await conn.fetch(
-            "SELECT key, value FROM model_specifications WHERE model_id = $1", model_id
+            "SELECT spec_key, spec_value FROM model_specifications WHERE model_id = $1",
+            model_id,
         )
         assert len(rows) == 2
-        values_by_key = {r["key"]: r["value"] for r in rows}
+        values_by_key = {r["spec_key"]: r["spec_value"] for r in rows}
         assert values_by_key["HP"] == "60"
         assert values_by_key["Cylinders"] == "4"
 
