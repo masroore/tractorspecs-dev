@@ -1,0 +1,12 @@
+httpx[asyncio]>=0.27
+selectolax>=0.3
+asyncpg>=0.30
+tenacity>=8.3
+aiolimiter>=1.1
+aiobotocore>=2.13
+python-dotenv>=1.0
+structlog>=24.0
+orjson>=3.10
+rich>=13.0
+pytest>=8.0
+pytest-asyncio>=0.24
