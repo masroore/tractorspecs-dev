@@ -10,12 +10,13 @@ import os
 
 import pytest
 
-pytestmark = pytest.mark.skipif(
-    not os.getenv("DATABASE_URL"),
-    reason="DATABASE_URL not set — skipping pipeline DB tests",
-)
-
-pytestmark = pytest.mark.asyncio
+pytestmark = [
+    pytest.mark.skipif(
+        not os.getenv("DATABASE_URL"),
+        reason="DATABASE_URL not set — skipping pipeline DB tests",
+    ),
+    pytest.mark.asyncio,
+]
 
 
 async def _get_connection():
@@ -234,7 +235,7 @@ class TestIsModelFullyScraped:
         "model_photos",
     ]
 
-    async def _seed_model(self, conn) -> int:
+    async def _seed_model(self, conn, suffix: str = "c1") -> int:
         """Insert a minimal tractor_models row and return its id."""
         from pipeline import upsert_manufacturer, upsert_model, upsert_series
 
@@ -254,8 +255,8 @@ class TestIsModelFullyScraped:
             mfr_id,
             series_id,
             {
-                "name": "CompleteCo C1",
-                "slug": "completeco-c1",
+                "name": f"CompleteCo {suffix.upper()}",
+                "slug": f"completeco-{suffix}",
                 "production_start_year": None,
                 "production_end_year": None,
                 "description": "",
@@ -323,8 +324,8 @@ class TestIsModelFullyScraped:
     async def test_not_affected_by_other_model_targets(self, conn) -> None:
         from pipeline import is_model_fully_scraped
 
-        model_id = await self._seed_model(conn)
-        other_model_id = await self._seed_model(conn)
+        model_id = await self._seed_model(conn, suffix="c1")
+        other_model_id = await self._seed_model(conn, suffix="c2")
         # Mark all 5 done for the OTHER model
         for t in self._SUBPAGE_TYPES:
             await self._insert_target(conn, other_model_id, t, "done")
