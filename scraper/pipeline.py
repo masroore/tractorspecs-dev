@@ -59,12 +59,14 @@ async def upsert_series(
     row = await conn.fetchrow(
         """
         INSERT INTO series
-            (manufacturer_id, slug, name, production_start_year, production_end_year,
+            (manufacturer_id, slug, name, tractor_type,
+             production_start_year, production_end_year,
              created_at, updated_at)
         VALUES
-            ($1, $2, $3, $4, $5, NOW(), NOW())
+            ($1, $2, $3, $4, $5, $6, NOW(), NOW())
         ON CONFLICT (manufacturer_id, slug) DO UPDATE
             SET name                = EXCLUDED.name,
+                tractor_type        = COALESCE(EXCLUDED.tractor_type, series.tractor_type),
                 production_start_year = COALESCE(EXCLUDED.production_start_year,
                                                   series.production_start_year),
                 production_end_year   = COALESCE(EXCLUDED.production_end_year,
@@ -75,6 +77,7 @@ async def upsert_series(
         manufacturer_id,
         slug,
         data["name"],
+        data.get("tractor_type"),
         data.get("production_start") or data.get("production_start_year"),
         data.get("production_end") or data.get("production_end_year"),
     )
@@ -121,16 +124,17 @@ async def upsert_model(
     row = await conn.fetchrow(
         """
         INSERT INTO tractor_models
-            (manufacturer_id, series_id, slug, name,
+            (manufacturer_id, series_id, slug, name, tractor_type,
              production_start_year, production_end_year,
              horsepower_hp, description, name_search,
              is_active, created_at, updated_at)
         VALUES
-            ($1, $2, $3, $4, $5, $6, $7, $8,
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9,
              to_tsvector('english', $4), TRUE, NOW(), NOW())
         ON CONFLICT (slug) DO UPDATE
             SET manufacturer_id       = EXCLUDED.manufacturer_id,
                 series_id             = COALESCE(EXCLUDED.series_id, tractor_models.series_id),
+                tractor_type          = COALESCE(EXCLUDED.tractor_type, tractor_models.tractor_type),
                 production_start_year = COALESCE(EXCLUDED.production_start_year,
                                                   tractor_models.production_start_year),
                 production_end_year   = COALESCE(EXCLUDED.production_end_year,
@@ -146,6 +150,7 @@ async def upsert_model(
         series_id,
         slug,
         data["name"],
+        data.get("tractor_type"),
         data.get("production_start_year"),
         data.get("production_end_year"),
         data.get("horsepower_hp"),
