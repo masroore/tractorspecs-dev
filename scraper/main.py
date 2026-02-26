@@ -146,6 +146,7 @@ async def main() -> None:
         secret_key=settings.minio_secret_key,
         bucket=settings.minio_bucket,
     )
+    await storage.ensure_bucket()
 
     # --- Rate limiter & concurrency semaphore ---
     limiter = AsyncLimiter(settings.rate_limit_rps, 1)

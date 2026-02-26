@@ -57,6 +57,19 @@ class SnapshotStorage:
                 return None
             raise
 
+    async def ensure_bucket(self) -> None:
+        """Create the storage bucket if it does not already exist."""
+        async with self._client() as s3:
+            try:
+                await s3.head_bucket(Bucket=self._bucket)
+                log.debug("storage.bucket_exists", bucket=self._bucket)
+            except Exception as exc:
+                if _is_not_found(exc) or _is_forbidden(exc):
+                    await s3.create_bucket(Bucket=self._bucket)
+                    log.info("storage.bucket_created", bucket=self._bucket)
+                else:
+                    raise
+
     async def put(self, key: str, html: str) -> None:
         """Upload an HTML snapshot."""
         body = html.encode("utf-8")
@@ -84,11 +97,15 @@ class SnapshotStorage:
     # ------------------------------------------------------------------
 
     def _client(self):  # type: ignore[return]
+        from botocore.config import Config
+
         return self._session.create_client(
             "s3",
             endpoint_url=self._endpoint,
             aws_access_key_id=self._access_key,
             aws_secret_access_key=self._secret_key,
+            region_name="us-east-1",
+            config=Config(s3={"addressing_style": "path"}, signature_version="s3v4"),
         )
 
 
@@ -104,5 +121,15 @@ def _is_not_found(exc: Exception) -> bool:
 
     if isinstance(exc, ClientError):
         code = exc.response.get("Error", {}).get("Code", "")
-        return code in ("404", "NoSuchKey")
+        return code in ("404", "NoSuchKey", "NoSuchBucket")
+    return False
+
+
+def _is_forbidden(exc: Exception) -> bool:
+    """Detect S3/MinIO 403 errors — returned by MinIO for missing buckets."""
+    from botocore.exceptions import ClientError
+
+    if isinstance(exc, ClientError):
+        code = exc.response.get("Error", {}).get("Code", "")
+        return code in ("403", "AccessDenied", "AllAccessDisabled")
     return False
