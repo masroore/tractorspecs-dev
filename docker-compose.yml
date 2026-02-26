@@ -7,7 +7,7 @@ services:
       PGPASSWORD: password
       POSTGRES_DB: tractors
     networks:
-        - scraper-net
+        - webnet
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
@@ -21,7 +21,7 @@ services:
 
   minio:
     networks:
-        - scraper-net
+        - webnet
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
@@ -41,7 +41,7 @@ services:
 
   adminer:
     networks:
-        - scraper-net
+        - webnet
     image: adminer:latest
     ports:
       - "89:8080"
@@ -60,7 +60,7 @@ services:
       - db
       - minio
     networks:
-        - scraper-net
+        - webnet
     command: ["python", "main.py"]
     restart: on-failure
 
@@ -69,5 +69,5 @@ volumes:
   minio-data:
 
 networks:
-    scraper-net:
+    webnet:
         driver: bridge
