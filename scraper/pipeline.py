@@ -662,3 +662,39 @@ async def replace_model_photos(
     )
 
     log.debug("pipeline.photos_replaced", model_id=model_id, count=len(photos))
+
+
+# ---------------------------------------------------------------------------
+# Post-scrape completeness
+# ---------------------------------------------------------------------------
+
+_SUBPAGE_TARGET_TYPES: frozenset[str] = frozenset(
+    {
+        "model_engine",
+        "model_transmission",
+        "model_dimensions",
+        "model_tests",
+        "model_photos",
+    }
+)
+
+
+async def is_model_fully_scraped(conn: asyncpg.Connection, model_id: int) -> bool:
+    """Return True when all 5 sub-page crawl targets for *model_id* are done.
+
+    Counts ``crawl_targets`` rows whose ``meta->>'model_id'`` matches
+    *model_id* and whose ``type`` is one of the five sub-page types.
+    All 5 must carry ``status='done'`` for this to return True.
+    """
+    row = await conn.fetchrow(
+        """
+        SELECT COUNT(*) AS done_count
+        FROM   crawl_targets
+        WHERE  (meta->>'model_id')::int = $1
+          AND  type  = ANY($2::text[])
+          AND  status = 'done'
+        """,
+        model_id,
+        list(_SUBPAGE_TARGET_TYPES),
+    )
+    return int(row["done_count"]) == len(_SUBPAGE_TARGET_TYPES)
