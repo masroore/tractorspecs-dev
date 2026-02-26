@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 
 import pytest
+import pytest_asyncio
 
 pytestmark = [
     pytest.mark.skipif(
@@ -26,7 +27,7 @@ async def _get_connection():
     return await asyncpg.connect(dsn)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def conn():
     """Provide a transaction-wrapped connection that rolls back after each test."""
     import asyncpg
