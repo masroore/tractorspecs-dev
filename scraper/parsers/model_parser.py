@@ -24,9 +24,9 @@ def parse_model_page(html: HTMLParser) -> dict:
     }
     """
     name = _parse_name(html)
-    start_year, end_year = _parse_years(html)
-    description = _parse_description(html)
     specs = _parse_specs(html)
+    start_year, end_year = _extract_years_from_specs(specs)
+    description = _parse_description(html)
     horsepower_hp = _extract_hp(specs)
 
     return {
