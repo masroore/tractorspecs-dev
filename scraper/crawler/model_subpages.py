@@ -14,9 +14,12 @@ appropriate parser + pipeline pair.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import asyncpg
 
+from config import settings
+from exporter import fetch_model_document, write_model_json
 from http_client import Fetcher
 from logger import log
 from parsers.dimensions_parser import parse_dimensions_page
@@ -25,6 +28,7 @@ from parsers.photos_parser import parse_photos_page
 from parsers.tests_parser import parse_tests_page
 from parsers.transmission_parser import parse_transmission_page
 from pipeline import (
+    is_model_fully_scraped,
     replace_model_photos,
     replace_model_tire_options,
     update_crawl_target_status,
@@ -83,6 +87,23 @@ async def crawl_model_subpage(
         async with pool.acquire() as conn:
             await handler(conn, model_id, html)
             await update_crawl_target_status(conn, url, "done")
+
+            if await is_model_fully_scraped(conn, model_id):
+                document = await fetch_model_document(conn, model_id)
+                if document is not None:
+                    output_dir = Path(settings.json_export_dir)
+                    path = write_model_json(document, output_dir, skip_if_exists=True)
+                    if path:
+                        log.info(
+                            "crawler.subpage.json_exported",
+                            model_id=model_id,
+                            path=str(path),
+                        )
+                    else:
+                        log.debug(
+                            "crawler.subpage.json_already_exists",
+                            model_id=model_id,
+                        )
 
         log.info("crawler.subpage.done", url=url, type=target_type, model_id=model_id)
 
