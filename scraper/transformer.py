@@ -158,6 +158,7 @@ def build_slug(name: str) -> str:
 
 def _clean_string(value: str) -> str:
     """Strip non-breaking spaces, extra whitespace, and HTML entities."""
+    value = value.replace("\u202f", "")  # narrow no-break space (thousands separator)
     value = value.replace("\u00a0", " ")  # non-breaking space
     value = value.replace("\xa0", " ")
     value = value.replace("&nbsp;", " ")
