@@ -23,12 +23,12 @@ async def upsert_manufacturer(conn: asyncpg.Connection, data: dict[str, Any]) ->
         INSERT INTO manufacturers
             (slug, name, country, description, name_search, created_at, updated_at)
         VALUES
-            ($1, $2, $3, $4, to_tsvector('english', $2), NOW(), NOW())
+            ($1, $2, $3, $4, to_tsvector('english', $2::text), NOW(), NOW())
         ON CONFLICT (slug) DO UPDATE
             SET name        = EXCLUDED.name,
                 country     = COALESCE(EXCLUDED.country, manufacturers.country),
                 description = COALESCE(EXCLUDED.description, manufacturers.description),
-                name_search = to_tsvector('english', EXCLUDED.name),
+                name_search = to_tsvector('english', EXCLUDED.name::text),
                 updated_at  = NOW()
         RETURNING id
         """,
@@ -130,7 +130,7 @@ async def upsert_model(
              is_active, created_at, updated_at)
         VALUES
             ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-             to_tsvector('english', $4), TRUE, NOW(), NOW())
+             to_tsvector('english', $4::text), TRUE, NOW(), NOW())
         ON CONFLICT (slug) DO UPDATE
             SET manufacturer_id       = EXCLUDED.manufacturer_id,
                 series_id             = COALESCE(EXCLUDED.series_id, tractor_models.series_id),
@@ -142,7 +142,7 @@ async def upsert_model(
                 horsepower_hp         = COALESCE(EXCLUDED.horsepower_hp,
                                                   tractor_models.horsepower_hp),
                 description           = COALESCE(EXCLUDED.description, tractor_models.description),
-                name_search           = to_tsvector('english', EXCLUDED.name),
+                name_search           = to_tsvector('english', EXCLUDED.name::text),
                 updated_at            = NOW()
         RETURNING id
         """,
