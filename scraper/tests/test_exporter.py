@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
-from exporter import _default_serialiser, _SCHEMA_VERSION
+from exporter import _default_serialiser, _SCHEMA_VERSION, write_model_json
 
 
 class TestDefaultSerialiser:
@@ -96,3 +97,64 @@ class TestJsonSerialisationRoundTrip:
         assert "\n" in serialised
         # Top-level keys are indented with 2 spaces
         assert '  "schema_version"' in serialised
+
+
+class TestWriteModelJson:
+    def _make_document(self) -> dict:
+        return {
+            "schema_version": _SCHEMA_VERSION,
+            "exported_at": "2025-06-15T00:00:00Z",
+            "manufacturer": {"slug": "test-brand", "name": "Test Brand"},
+            "series": None,
+            "category": None,
+            "model": {
+                "slug": "test-brand-100",
+                "name": "Test Brand 100",
+                "horsepower_hp": 100.0,
+            },
+            "specifications": [],
+            "engine": None,
+            "tire_options": [],
+            "tests": [],
+            "photos": [],
+        }
+
+    def test_creates_file_at_expected_path(self, tmp_path: Path) -> None:
+        doc = self._make_document()
+        path = write_model_json(doc, tmp_path)
+        assert path is not None
+        assert path == tmp_path / "test-brand" / "test-brand-100.json"
+        assert path.exists()
+
+    def test_file_content_is_valid_json(self, tmp_path: Path) -> None:
+        doc = self._make_document()
+        path = write_model_json(doc, tmp_path)
+        assert path is not None
+        loaded = json.loads(path.read_text())
+        assert loaded["model"]["slug"] == "test-brand-100"
+        assert loaded["manufacturer"]["slug"] == "test-brand"
+
+    def test_creates_manufacturer_subdirectory(self, tmp_path: Path) -> None:
+        doc = self._make_document()
+        write_model_json(doc, tmp_path)
+        assert (tmp_path / "test-brand").is_dir()
+
+    def test_overwrites_by_default(self, tmp_path: Path) -> None:
+        doc = self._make_document()
+        write_model_json(doc, tmp_path)
+        doc["model"]["horsepower_hp"] = 999.0
+        write_model_json(doc, tmp_path)
+        loaded = json.loads((tmp_path / "test-brand" / "test-brand-100.json").read_text())
+        assert loaded["model"]["horsepower_hp"] == pytest.approx(999.0)
+
+    def test_skip_if_exists_returns_none_when_file_present(self, tmp_path: Path) -> None:
+        doc = self._make_document()
+        write_model_json(doc, tmp_path)
+        result = write_model_json(doc, tmp_path, skip_if_exists=True)
+        assert result is None
+
+    def test_skip_if_exists_writes_when_file_absent(self, tmp_path: Path) -> None:
+        doc = self._make_document()
+        path = write_model_json(doc, tmp_path, skip_if_exists=True)
+        assert path is not None
+        assert path.exists()

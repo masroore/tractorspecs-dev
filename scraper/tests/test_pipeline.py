@@ -221,3 +221,113 @@ class TestReplaceModelSpecs:
         values_by_key = {r["key"]: r["value"] for r in rows}
         assert values_by_key["HP"] == "60"
         assert values_by_key["Cylinders"] == "4"
+
+
+class TestIsModelFullyScraped:
+    """Tests for is_model_fully_scraped — requires a live DB (crawl_targets table)."""
+
+    _SUBPAGE_TYPES = [
+        "model_engine",
+        "model_transmission",
+        "model_dimensions",
+        "model_tests",
+        "model_photos",
+    ]
+
+    async def _seed_model(self, conn) -> int:
+        """Insert a minimal tractor_models row and return its id."""
+        from pipeline import upsert_manufacturer, upsert_model, upsert_series
+
+        mfr_id = await upsert_manufacturer(
+            conn,
+            {
+                "name": "CompleteCo",
+                "slug": "completeco",
+                "url": "/tractors/completeco/",
+            },
+        )
+        series_id = await upsert_series(
+            conn, mfr_id, {"name": "C Series", "slug": "c-series", "models": []}
+        )
+        model_id, _ = await upsert_model(
+            conn,
+            mfr_id,
+            series_id,
+            {
+                "name": "CompleteCo C1",
+                "slug": "completeco-c1",
+                "production_start_year": None,
+                "production_end_year": None,
+                "description": "",
+                "horsepower_hp": None,
+                "content_hash": None,
+            },
+        )
+        return model_id
+
+    async def _insert_target(
+        self, conn, model_id: int, target_type: str, status: str
+    ) -> None:
+        import json as _json
+
+        await conn.execute(
+            """
+            INSERT INTO crawl_targets (url, type, meta, status, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, NOW(), NOW())
+            ON CONFLICT (url) DO UPDATE SET status = EXCLUDED.status
+            """,
+            f"https://example.com/{model_id}/{target_type}",
+            target_type,
+            _json.dumps({"model_id": model_id}),
+            status,
+        )
+
+    async def test_returns_false_when_no_targets(self, conn) -> None:
+        from pipeline import is_model_fully_scraped
+
+        model_id = await self._seed_model(conn)
+        result = await is_model_fully_scraped(conn, model_id)
+        assert result is False
+
+    async def test_returns_false_when_only_four_done(self, conn) -> None:
+        from pipeline import is_model_fully_scraped
+
+        model_id = await self._seed_model(conn)
+        for t in self._SUBPAGE_TYPES[:-1]:  # all except model_photos
+            await self._insert_target(conn, model_id, t, "done")
+
+        result = await is_model_fully_scraped(conn, model_id)
+        assert result is False
+
+    async def test_returns_false_when_one_pending(self, conn) -> None:
+        from pipeline import is_model_fully_scraped
+
+        model_id = await self._seed_model(conn)
+        for t in self._SUBPAGE_TYPES[:-1]:
+            await self._insert_target(conn, model_id, t, "done")
+        await self._insert_target(conn, model_id, "model_photos", "pending")
+
+        result = await is_model_fully_scraped(conn, model_id)
+        assert result is False
+
+    async def test_returns_true_when_all_five_done(self, conn) -> None:
+        from pipeline import is_model_fully_scraped
+
+        model_id = await self._seed_model(conn)
+        for t in self._SUBPAGE_TYPES:
+            await self._insert_target(conn, model_id, t, "done")
+
+        result = await is_model_fully_scraped(conn, model_id)
+        assert result is True
+
+    async def test_not_affected_by_other_model_targets(self, conn) -> None:
+        from pipeline import is_model_fully_scraped
+
+        model_id = await self._seed_model(conn)
+        other_model_id = await self._seed_model(conn)
+        # Mark all 5 done for the OTHER model
+        for t in self._SUBPAGE_TYPES:
+            await self._insert_target(conn, other_model_id, t, "done")
+
+        result = await is_model_fully_scraped(conn, model_id)
+        assert result is False
