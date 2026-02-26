@@ -1,0 +1,62 @@
+# Python artifacts
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+wheel/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+nose2-junit.xml
+nosetests.xml
+
+# Type checkers
+.mypy_cache/
+.pyre/
+.pytype/
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+*.manifest
+*.spec
+
+# Installer artifacts
+*.log
+
+# Editors and OS files
+.DS_Store
+.idea/
+.vscode/
+
+# Local env files
+.env
+.env.*
+
+# Python cache
+*.pyc
+
