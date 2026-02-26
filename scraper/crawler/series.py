@@ -28,6 +28,7 @@ async def crawl_manufacturer_page(
     url: str = target["url"]
     meta: dict = json.loads(target["meta"] or "{}")
     manufacturer_id: int = meta.get("manufacturer_id")
+    tractor_type: str | None = meta.get("tractor_type")
 
     if not manufacturer_id:
         log.error("crawler.series.no_manufacturer_id", url=url, meta=meta)
@@ -63,6 +64,8 @@ async def crawl_manufacturer_page(
             # Upsert each series and enqueue model URLs
             total_models_enqueued = 0
             for series_data in result["series"]:
+                # Propagate tractor_type into the series row
+                series_data["tractor_type"] = tractor_type
                 series_id = await upsert_series(conn, manufacturer_id, series_data)
 
                 for model_link in series_data.get("models", []):
@@ -74,6 +77,7 @@ async def crawl_manufacturer_page(
                             "manufacturer_id": manufacturer_id,
                             "series_id": series_id,
                             "name": model_link.get("name"),
+                            "tractor_type": tractor_type,
                         },
                         parent_id=target["id"],
                     )

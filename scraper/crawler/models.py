@@ -29,6 +29,7 @@ async def crawl_model_page(
     meta: dict = json.loads(target["meta"] or "{}")
     manufacturer_id: int = meta.get("manufacturer_id")
     series_id: int | None = meta.get("series_id")
+    tractor_type: str | None = meta.get("tractor_type")
 
     if not manufacturer_id:
         log.error("crawler.model.no_manufacturer_id", url=url)
@@ -59,6 +60,7 @@ async def crawl_model_page(
             )
 
         data["specs"] = normalized_specs
+        data["tractor_type"] = tractor_type
 
         content_hash = compute_spec_hash(normalized_specs)
 

@@ -45,15 +45,18 @@ def parse_model_page(html: HTMLParser) -> dict:
 
 
 def _parse_name(html: HTMLParser) -> str:
-    h1 = html.css_first("h1")
-    if h1:
-        return h1.text(strip=True)
+    # TractorData puts the model name in an H1 or a span with class tdMt
+    for selector in ("h1", ".tdMt", "h2"):
+        node = html.css_first(selector)
+        if node:
+            text = node.text(strip=True)
+            if text:
+                return text
 
-    # Fallback: page title element
+    # Fallback: page <title> — strip trailing " - TractorData.com" etc.
     title = html.css_first("title")
     if title:
         raw = title.text(strip=True)
-        # Strip common suffixes like " - Specs & Data"
         return re.split(r"\s*[-|]\s*", raw)[0].strip()
 
     return "Unknown"
@@ -68,35 +71,41 @@ _YEAR_SINGLE_RE = re.compile(r"\b((?:19|20)\d{2})\b")
 
 
 def _parse_years(html: HTMLParser) -> tuple[int | None, int | None]:
-    # Look for year info in subtitle paragraphs, header spans, or breadcrumbs
-    candidates = [
-        html.css_first("p.model-years"),
-        html.css_first("div.model-header span"),
-        html.css_first("div.tractor-info"),
-        html.css_first("h1"),
-        html.css_first("h2"),
-    ]
+    """Derive production years from the parsed spec data."""
+    # Spec parsing happens first; this is a fallback for callers that
+    # want years without the full spec pass.  The primary path is
+    # _extract_years_from_specs() called after _parse_specs().
+    specs = _parse_specs(html)
+    return _extract_years_from_specs(specs)
 
-    for node in candidates:
-        if node is None:
+
+_YEAR_RE = re.compile(r"\b((?:19|20)\d{2})\b")
+
+
+def _extract_years_from_specs(specs: list[dict]) -> tuple[int | None, int | None]:
+    """Look for Introduced / Discontinued keys in the Production group."""
+    start_year: int | None = None
+    end_year: int | None = None
+
+    for spec in specs:
+        group_lower = spec["group"].lower()
+        key_lower = spec["key"].lower()
+
+        if "production" not in group_lower:
             continue
-        text = node.text(strip=True)
-        m = _YEAR_RANGE_RE.search(text)
-        if m:
-            return int(m.group(1)), int(m.group(2))
-        m2 = _YEAR_SINGLE_RE.search(text)
-        if m2:
-            return int(m2.group(1)), None
 
-    # Last resort: scan all visible text in the header area
-    header = html.css_first("div#header, div.page-header, header")
-    if header:
-        text = header.text(strip=True)
-        m = _YEAR_RANGE_RE.search(text)
-        if m:
-            return int(m.group(1)), int(m.group(2))
+        m = _YEAR_RE.search(spec["value"])
+        if not m:
+            continue
 
-    return None, None
+        year = int(m.group(1))
+
+        if "introduced" in key_lower or "built" in key_lower or "start" in key_lower:
+            start_year = year
+        elif "discontinued" in key_lower or "end" in key_lower or "last" in key_lower:
+            end_year = year
+
+    return start_year, end_year
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +114,7 @@ def _parse_years(html: HTMLParser) -> tuple[int | None, int | None]:
 
 
 def _parse_description(html: HTMLParser) -> str | None:
-    for selector in ("div.model-description p", "div.description p", "article > p"):
+    for selector in ("div.tdArticleItemFull p", "div.tdArticleItem p", "article > p", "p"):
         node = html.css_first(selector)
         if node:
             text = node.text(strip=True)
@@ -120,19 +129,30 @@ def _parse_description(html: HTMLParser) -> str | None:
 
 
 def _parse_specs(html: HTMLParser) -> list[dict]:
+    """Walk every <table class="tdat"> on the page.
+
+    Within each table rows are either:
+    - A group header:  <tr><td colspan="2">Group Name</td></tr>
+    - A spec pair:     <tr><td>Key</td><td>Value</td></tr>
+    """
     specs: list[dict] = []
     display_order = 0
 
-    # TractorData renders specs in multiple <table> elements, each with a
-    # <caption> or a preceding sibling heading that names the group.
-    # We iterate every table and determine its group name.
-    for table in html.css("table"):
-        group = _get_group_name(table)
-        if not group:
-            continue
+    for table in html.css("table.tdat"):
+        current_group = "General"
 
         for row in table.css("tr"):
             cells = row.css("td")
+
+            if len(cells) == 1:
+                # Group header row — has colspan="2"
+                colspan = cells[0].attributes.get("colspan", "1")
+                if str(colspan) == "2":
+                    group_text = cells[0].text(strip=True)
+                    if group_text:
+                        current_group = group_text
+                continue
+
             if len(cells) < 2:
                 continue
 
@@ -146,7 +166,7 @@ def _parse_specs(html: HTMLParser) -> list[dict]:
 
             specs.append(
                 {
-                    "group": group,
+                    "group": current_group,
                     "key": key,
                     "value": normalized_value,
                     "unit": unit,
@@ -156,33 +176,6 @@ def _parse_specs(html: HTMLParser) -> list[dict]:
             display_order += 1
 
     return specs
-
-
-def _get_group_name(table) -> str | None:  # type: ignore[return]
-    """Determine the spec group name for a table."""
-    # Option 1: <caption> element inside the table
-    caption = table.css_first("caption")
-    if caption:
-        name = caption.text(strip=True)
-        if name:
-            return name
-
-    # Option 2: Preceding <h2> or <h3> sibling (DOM walking)
-    prev = table.prev
-    while prev is not None:
-        if hasattr(prev, "tag") and prev.tag in ("h2", "h3", "h4"):
-            name = prev.text(strip=True)
-            if name:
-                return name
-            break
-        prev = getattr(prev, "prev", None)
-
-    # Option 3: id or class attribute on the table
-    table_id = table.attributes.get("id", "") or table.attributes.get("class", "")
-    if table_id:
-        return table_id.replace("-", " ").replace("_", " ").title()
-
-    return None
 
 
 # ---------------------------------------------------------------------------
