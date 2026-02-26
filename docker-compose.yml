@@ -64,6 +64,8 @@ services:
         condition: service_healthy
     networks:
         - webnet
+    volumes:
+      - ./json-data:/app/json-data
     command: ["python", "main.py"]
     restart: on-failure
 
