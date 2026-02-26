@@ -23,12 +23,12 @@ async def upsert_manufacturer(conn: asyncpg.Connection, data: dict[str, Any]) ->
         INSERT INTO manufacturers
             (slug, name, country, description, name_search, created_at, updated_at)
         VALUES
-            ($1, $2, $3, $4, to_tsvector('english', $2::text), NOW(), NOW())
+            ($1, $2, $3, $4, to_tsvector('english', $5), NOW(), NOW())
         ON CONFLICT (slug) DO UPDATE
             SET name        = EXCLUDED.name,
                 country     = COALESCE(EXCLUDED.country, manufacturers.country),
                 description = COALESCE(EXCLUDED.description, manufacturers.description),
-                name_search = to_tsvector('english', EXCLUDED.name::text),
+                name_search = to_tsvector('english', $5),
                 updated_at  = NOW()
         RETURNING id
         """,
@@ -36,6 +36,7 @@ async def upsert_manufacturer(conn: asyncpg.Connection, data: dict[str, Any]) ->
         data["name"],
         data.get("country"),
         data.get("description"),
+        data["name"],  # $5 — text copy for to_tsvector
     )
 
     manufacturer_id = int(row["id"])
@@ -130,7 +131,7 @@ async def upsert_model(
              is_active, created_at, updated_at)
         VALUES
             ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-             to_tsvector('english', $4::text), TRUE, NOW(), NOW())
+             to_tsvector('english', $10), TRUE, NOW(), NOW())
         ON CONFLICT (slug) DO UPDATE
             SET manufacturer_id       = EXCLUDED.manufacturer_id,
                 series_id             = COALESCE(EXCLUDED.series_id, tractor_models.series_id),
@@ -142,7 +143,7 @@ async def upsert_model(
                 horsepower_hp         = COALESCE(EXCLUDED.horsepower_hp,
                                                   tractor_models.horsepower_hp),
                 description           = COALESCE(EXCLUDED.description, tractor_models.description),
-                name_search           = to_tsvector('english', EXCLUDED.name::text),
+                name_search           = to_tsvector('english', $10),
                 updated_at            = NOW()
         RETURNING id
         """,
@@ -155,6 +156,7 @@ async def upsert_model(
         data.get("production_end_year"),
         data.get("horsepower_hp"),
         data.get("description"),
+        data["name"],  # $10 — text copy for to_tsvector
     )
 
     model_id = int(row["id"])
