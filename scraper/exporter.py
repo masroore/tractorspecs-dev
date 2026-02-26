@@ -116,7 +116,7 @@ async def _fetch_model_ids(
     return [r["id"] for r in rows]
 
 
-async def _fetch_model_document(
+async def fetch_model_document(
     conn: asyncpg.Connection,
     model_id: int,
 ) -> dict[str, Any] | None:
@@ -325,6 +325,33 @@ async def _fetch_model_document(
 # ---------------------------------------------------------------------------
 
 
+def write_model_json(
+    document: dict[str, Any],
+    output_dir: Path,
+    *,
+    skip_if_exists: bool = False,
+) -> Path | None:
+    """Serialise *document* to ``{output_dir}/{mfr_slug}/{model_slug}.json``.
+
+    Returns the destination Path on success, or None when *skip_if_exists* is
+    True and the file already exists.
+    """
+    mfr_slug = document["manufacturer"]["slug"]
+    model_slug = document["model"]["slug"]
+    dest_dir = output_dir / mfr_slug
+    dest_path = dest_dir / f"{model_slug}.json"
+
+    if skip_if_exists and dest_path.exists():
+        return None
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_path.write_text(
+        json.dumps(document, default=_default_serialiser, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return dest_path
+
+
 async def export_models(
     pool: asyncpg.Pool,
     output_dir: Path,
@@ -346,28 +373,21 @@ async def export_models(
     written = 0
     for model_id in model_ids:
         async with pool.acquire() as conn:
-            document = await _fetch_model_document(conn, model_id)
+            document = await fetch_model_document(conn, model_id)
 
         if document is None:
             log.warning("exporter.model_not_found", model_id=model_id)
             continue
 
-        mfr_slug = document["manufacturer"]["slug"]
-        model_slug_ = document["model"]["slug"]
-        dest_dir = output_dir / mfr_slug
-        dest_path = dest_dir / f"{model_slug_}.json"
-
         if dry_run:
+            mfr_slug = document["manufacturer"]["slug"]
+            model_slug_ = document["model"]["slug"]
+            dest_path = output_dir / mfr_slug / f"{model_slug_}.json"
             log.info("exporter.model.dry_run", path=str(dest_path))
         else:
-            dest_dir.mkdir(parents=True, exist_ok=True)
-            dest_path.write_text(
-                json.dumps(
-                    document, default=_default_serialiser, indent=2, ensure_ascii=False
-                ),
-                encoding="utf-8",
-            )
-            log.info("exporter.model.written", path=str(dest_path), model=model_slug_)
+            path = write_model_json(document, output_dir)
+            if path:
+                log.info("exporter.model.written", path=str(path), model=document["model"]["slug"])
 
         written += 1
 
