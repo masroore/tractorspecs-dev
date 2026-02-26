@@ -101,6 +101,7 @@ def is_snapshot_fresh(last_modified: datetime, ttl_days: int) -> bool:
 def _is_not_found(exc: Exception) -> bool:
     """Detect S3/MinIO 404 errors from aiobotocore."""
     from botocore.exceptions import ClientError
+
     if isinstance(exc, ClientError):
         code = exc.response.get("Error", {}).get("Code", "")
         return code in ("404", "NoSuchKey")

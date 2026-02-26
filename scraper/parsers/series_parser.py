@@ -43,6 +43,7 @@ def parse_manufacturer_page(html: HTMLParser) -> dict:
 # Manufacturer meta
 # ---------------------------------------------------------------------------
 
+
 def _parse_manufacturer_meta(html: HTMLParser) -> dict[str, str | None]:
     description: str | None = None
     country: str | None = None
@@ -69,6 +70,7 @@ def _parse_manufacturer_meta(html: HTMLParser) -> dict[str, str | None]:
 # ---------------------------------------------------------------------------
 # Series & model listing
 # ---------------------------------------------------------------------------
+
 
 def _parse_series(html: HTMLParser) -> list[dict]:
     series_list: list[dict] = []
@@ -119,13 +121,15 @@ def _parse_series(html: HTMLParser) -> list[dict]:
     if not series_list:
         models = _collect_all_model_links(html)
         if models:
-            series_list.append({
-                "name": "General",
-                "slug": "general",
-                "production_start": None,
-                "production_end": None,
-                "models": models,
-            })
+            series_list.append(
+                {
+                    "name": "General",
+                    "slug": "general",
+                    "production_start": None,
+                    "production_end": None,
+                    "models": models,
+                }
+            )
 
     return series_list
 

@@ -82,8 +82,20 @@ class TestBuildSlug:
 class TestComputeSpecHash:
     def test_stable(self) -> None:
         specs = [
-            {"group": "Engine", "key": "HP", "value": "25.0", "unit": "hp", "display_order": 0},
-            {"group": "Engine", "key": "Cylinders", "value": "3", "unit": None, "display_order": 1},
+            {
+                "group": "Engine",
+                "key": "HP",
+                "value": "25.0",
+                "unit": "hp",
+                "display_order": 0,
+            },
+            {
+                "group": "Engine",
+                "key": "Cylinders",
+                "value": "3",
+                "unit": None,
+                "display_order": 1,
+            },
         ]
         assert compute_spec_hash(specs) == compute_spec_hash(specs)
 
@@ -96,6 +108,22 @@ class TestComputeSpecHash:
         assert compute_spec_hash(s1) == compute_spec_hash(s2)
 
     def test_different_values_differ(self) -> None:
-        s1 = [{"group": "Engine", "key": "HP", "value": "25.0", "unit": "hp", "display_order": 0}]
-        s2 = [{"group": "Engine", "key": "HP", "value": "30.0", "unit": "hp", "display_order": 0}]
+        s1 = [
+            {
+                "group": "Engine",
+                "key": "HP",
+                "value": "25.0",
+                "unit": "hp",
+                "display_order": 0,
+            }
+        ]
+        s2 = [
+            {
+                "group": "Engine",
+                "key": "HP",
+                "value": "30.0",
+                "unit": "hp",
+                "display_order": 0,
+            }
+        ]
         assert compute_spec_hash(s1) != compute_spec_hash(s2)

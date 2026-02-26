@@ -33,7 +33,9 @@ async def crawl_model_page(
     if not manufacturer_id:
         log.error("crawler.model.no_manufacturer_id", url=url)
         async with pool.acquire() as conn:
-            await update_crawl_target_status(conn, url, "failed", error="Missing manufacturer_id in meta")
+            await update_crawl_target_status(
+                conn, url, "failed", error="Missing manufacturer_id in meta"
+            )
         return
 
     log.info("crawler.model.start", url=url)
@@ -46,13 +48,15 @@ async def crawl_model_page(
         normalized_specs: list[dict] = []
         for idx, spec in enumerate(data.get("specs", [])):
             norm_value, unit = normalize_spec(spec["key"], spec["value"])
-            normalized_specs.append({
-                "group": spec["group"],
-                "key": spec["key"],
-                "value": norm_value,
-                "unit": unit or spec.get("unit"),
-                "display_order": spec.get("display_order", idx),
-            })
+            normalized_specs.append(
+                {
+                    "group": spec["group"],
+                    "key": spec["key"],
+                    "value": norm_value,
+                    "unit": unit or spec.get("unit"),
+                    "display_order": spec.get("display_order", idx),
+                }
+            )
 
         data["specs"] = normalized_specs
 
@@ -67,9 +71,13 @@ async def crawl_model_page(
             )
 
             if specs_need_update:
-                await replace_model_specs(conn, model_id, normalized_specs, content_hash)
+                await replace_model_specs(
+                    conn, model_id, normalized_specs, content_hash
+                )
 
-            await update_crawl_target_status(conn, url, "done", content_hash=content_hash)
+            await update_crawl_target_status(
+                conn, url, "done", content_hash=content_hash
+            )
 
         log.info(
             "crawler.model.done",

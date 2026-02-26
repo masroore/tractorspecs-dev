@@ -26,6 +26,7 @@ from storage import SnapshotStorage
 # Argument parsing
 # ---------------------------------------------------------------------------
 
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="TractorSpecs scraper")
     parser.add_argument(
@@ -57,6 +58,7 @@ def _parse_args() -> argparse.Namespace:
 # Core processing loop
 # ---------------------------------------------------------------------------
 
+
 async def process_pending_targets(
     pool,
     fetcher: Fetcher,
@@ -79,7 +81,9 @@ async def process_pending_targets(
         effective_batch = min(batch_size, limit - processed) if limit else batch_size
 
         async with pool.acquire() as conn:
-            targets = await fetch_pending_targets(conn, target_type, batch_size=effective_batch)
+            targets = await fetch_pending_targets(
+                conn, target_type, batch_size=effective_batch
+            )
             if not targets:
                 break
 
@@ -112,6 +116,7 @@ async def process_pending_targets(
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 async def main() -> None:
     args = _parse_args()
@@ -164,14 +169,18 @@ async def main() -> None:
         # Phase 2: Process manufacturer pages → discover series + enqueue models
         if run_type in (None, "manufacturer"):
             await process_pending_targets(
-                pool, fetcher, "manufacturer",
+                pool,
+                fetcher,
+                "manufacturer",
                 limit=args.limit,
             )
 
         # Phase 3: Process model pages → extract & store specs
         if run_type in (None, "model"):
             await process_pending_targets(
-                pool, fetcher, "model",
+                pool,
+                fetcher,
+                "model",
                 limit=args.limit,
             )
 

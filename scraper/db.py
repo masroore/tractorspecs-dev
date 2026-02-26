@@ -56,6 +56,7 @@ def _redact_dsn(dsn: str) -> str:
     """Return DSN with password replaced by ***."""
     try:
         from urllib.parse import urlparse, urlunparse
+
         parsed = urlparse(dsn)
         if parsed.password:
             netloc = parsed.netloc.replace(parsed.password, "***")

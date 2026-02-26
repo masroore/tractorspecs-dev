@@ -13,6 +13,7 @@ from transformer import build_slug, compute_spec_hash
 # Manufacturers
 # ---------------------------------------------------------------------------
 
+
 async def upsert_manufacturer(conn: asyncpg.Connection, data: dict[str, Any]) -> int:
     """Insert or update a manufacturer row.  Returns the manufacturer id."""
     slug = data.get("slug") or build_slug(data["name"])
@@ -45,6 +46,7 @@ async def upsert_manufacturer(conn: asyncpg.Connection, data: dict[str, Any]) ->
 # ---------------------------------------------------------------------------
 # Series
 # ---------------------------------------------------------------------------
+
 
 async def upsert_series(
     conn: asyncpg.Connection,
@@ -85,6 +87,7 @@ async def upsert_series(
 # ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
+
 
 async def upsert_model(
     conn: asyncpg.Connection,
@@ -158,6 +161,7 @@ async def upsert_model(
 # Specifications
 # ---------------------------------------------------------------------------
 
+
 async def replace_model_specs(
     conn: asyncpg.Connection,
     model_id: int,
@@ -191,7 +195,14 @@ async def replace_model_specs(
         await conn.copy_records_to_table(
             "model_specifications",
             records=records,
-            columns=["model_id", "spec_group", "spec_key", "spec_value", "unit", "display_order"],
+            columns=[
+                "model_id",
+                "spec_group",
+                "spec_key",
+                "spec_value",
+                "unit",
+                "display_order",
+            ],
         )
 
     # Persist content hash on the model row so future crawls can skip unchanged pages
@@ -207,6 +218,7 @@ async def replace_model_specs(
 # ---------------------------------------------------------------------------
 # Crawl target state management
 # ---------------------------------------------------------------------------
+
 
 async def enqueue_crawl_target(
     conn: asyncpg.Connection,

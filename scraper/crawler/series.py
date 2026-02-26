@@ -32,7 +32,9 @@ async def crawl_manufacturer_page(
     if not manufacturer_id:
         log.error("crawler.series.no_manufacturer_id", url=url, meta=meta)
         async with pool.acquire() as conn:
-            await update_crawl_target_status(conn, url, "failed", error="Missing manufacturer_id in meta")
+            await update_crawl_target_status(
+                conn, url, "failed", error="Missing manufacturer_id in meta"
+            )
         return
 
     log.info("crawler.series.start", url=url, manufacturer_id=manufacturer_id)

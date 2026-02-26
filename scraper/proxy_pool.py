@@ -59,7 +59,9 @@ class ProxyPool:
         self._proxies = [p for p in self._proxies if self._format(p) != proxy_str]
         after = len(self._proxies)
         if before != after:
-            log.warning("proxy_pool.removed", proxy=_redact_proxy(proxy_str), remaining=after)
+            log.warning(
+                "proxy_pool.removed", proxy=_redact_proxy(proxy_str), remaining=after
+            )
 
     async def refresh_if_low(self, threshold: int = 5) -> None:
         """Re-fetch the proxy list if the pool drops below *threshold*."""
@@ -83,6 +85,7 @@ def _redact_proxy(proxy_str: str) -> str:
     """Return proxy URL with password replaced by ***."""
     try:
         from urllib.parse import urlparse, urlunparse
+
         parsed = urlparse(proxy_str)
         if parsed.password:
             netloc = parsed.netloc.replace(parsed.password, "***")

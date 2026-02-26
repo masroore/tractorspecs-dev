@@ -8,7 +8,12 @@ from datetime import UTC, datetime
 import httpx
 from aiolimiter import AsyncLimiter
 from selectolax.parser import HTMLParser
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from config import settings
 from logger import log
@@ -62,7 +67,11 @@ class Fetcher:
         key = SnapshotStorage.snapshot_key(url)
         snapshot_exists, last_modified = await self._storage.exists(key)
 
-        if snapshot_exists and last_modified and is_snapshot_fresh(last_modified, settings.snapshot_ttl_days):
+        if (
+            snapshot_exists
+            and last_modified
+            and is_snapshot_fresh(last_modified, settings.snapshot_ttl_days)
+        ):
             log.debug("fetcher.cache_hit", url=url, key=key)
             html = await self._storage.get(key)
             if html:
@@ -120,7 +129,9 @@ class Fetcher:
                     raise
 
                 except httpx.HTTPStatusError as exc:
-                    raise _RetryableError(f"HTTP error {exc.response.status_code} for {url}") from exc
+                    raise _RetryableError(
+                        f"HTTP error {exc.response.status_code} for {url}"
+                    ) from exc
 
         html_text = response.text
 

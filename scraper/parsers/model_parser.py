@@ -43,6 +43,7 @@ def parse_model_page(html: HTMLParser) -> dict:
 # Name
 # ---------------------------------------------------------------------------
 
+
 def _parse_name(html: HTMLParser) -> str:
     h1 = html.css_first("h1")
     if h1:
@@ -102,6 +103,7 @@ def _parse_years(html: HTMLParser) -> tuple[int | None, int | None]:
 # Description
 # ---------------------------------------------------------------------------
 
+
 def _parse_description(html: HTMLParser) -> str | None:
     for selector in ("div.model-description p", "div.description p", "article > p"):
         node = html.css_first(selector)
@@ -115,6 +117,7 @@ def _parse_description(html: HTMLParser) -> str | None:
 # ---------------------------------------------------------------------------
 # Spec tables
 # ---------------------------------------------------------------------------
+
 
 def _parse_specs(html: HTMLParser) -> list[dict]:
     specs: list[dict] = []
@@ -141,13 +144,15 @@ def _parse_specs(html: HTMLParser) -> list[dict]:
 
             normalized_value, unit = normalize_spec(key, raw_value)
 
-            specs.append({
-                "group": group,
-                "key": key,
-                "value": normalized_value,
-                "unit": unit,
-                "display_order": display_order,
-            })
+            specs.append(
+                {
+                    "group": group,
+                    "key": key,
+                    "value": normalized_value,
+                    "unit": unit,
+                    "display_order": display_order,
+                }
+            )
             display_order += 1
 
     return specs
@@ -190,9 +195,17 @@ _HP_RE = re.compile(r"(\d+(?:\.\d+)?)")
 def _extract_hp(specs: list[dict]) -> float | None:
     """Find the engine/PTO horsepower from the parsed spec list."""
     hp_keys = {
-        "engine hp", "engine horsepower", "gross hp", "gross horsepower",
-        "rated hp", "pto hp", "horsepower", "hp", "power",
-        "max power", "max hp",
+        "engine hp",
+        "engine horsepower",
+        "gross hp",
+        "gross horsepower",
+        "rated hp",
+        "pto hp",
+        "horsepower",
+        "hp",
+        "power",
+        "max power",
+        "max hp",
     }
 
     for spec in specs:
