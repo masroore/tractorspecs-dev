@@ -21,6 +21,7 @@ class Settings:
     rate_limit_rps: float
     snapshot_ttl_days: int
     log_level: str
+    json_export_dir: str
 
 
 def _load() -> Settings:
@@ -47,6 +48,7 @@ def _load() -> Settings:
         rate_limit_rps=float(os.getenv("RATE_LIMIT_RPS", "5")),
         snapshot_ttl_days=int(os.getenv("SNAPSHOT_TTL_DAYS", "30")),
         log_level=os.getenv("LOG_LEVEL", "INFO"),
+        json_export_dir=os.getenv("JSON_EXPORT_DIR", "/app/json-data"),
     )
 
 
