@@ -10,6 +10,7 @@ Handles five target types:
 Each crawler function fetches the sub-page HTML and delegates to the
 appropriate parser + pipeline pair.
 """
+
 from __future__ import annotations
 
 import json
@@ -60,11 +61,11 @@ async def crawl_model_subpage(
     log.info("crawler.subpage.start", url=url, type=target_type, model_id=model_id)
 
     _handlers = {
-        "model_engine":        _handle_engine,
-        "model_transmission":  _handle_transmission,
-        "model_dimensions":    _handle_dimensions,
-        "model_tests":         _handle_tests,
-        "model_photos":        _handle_photos,
+        "model_engine": _handle_engine,
+        "model_transmission": _handle_transmission,
+        "model_dimensions": _handle_dimensions,
+        "model_tests": _handle_tests,
+        "model_photos": _handle_photos,
     }
 
     handler = _handlers.get(target_type)

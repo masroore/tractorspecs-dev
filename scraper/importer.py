@@ -18,6 +18,7 @@ python importer.py --file /app/json-data/john-deere/john-deere-6105m.json
 # Validate JSON parsing without touching the database
 python importer.py --dry-run --limit 5
 """
+
 from __future__ import annotations
 
 import argparse
@@ -70,14 +71,14 @@ async def _import_document(
 
     Returns the model slug for logging purposes.
     """
-    mfr_data   = document["manufacturer"]
+    mfr_data = document["manufacturer"]
     series_data = document.get("series")
-    model_data  = document["model"]
-    specs       = document.get("specifications") or []
-    engine      = document.get("engine")
+    model_data = document["model"]
+    specs = document.get("specifications") or []
+    engine = document.get("engine")
     tire_options = document.get("tire_options") or []
-    tests       = document.get("tests") or []
-    photos      = document.get("photos") or []
+    tests = document.get("tests") or []
+    photos = document.get("photos") or []
 
     async with pool.acquire() as conn:
         # 1. Manufacturer
@@ -107,16 +108,26 @@ async def _import_document(
             # Dimensions are stored inline on the first tire option row
             first = tire_options[0] if tire_options else {}
             _dim_keys = {
-                "wheelbase_in", "wheelbase_cm",
-                "length_in", "length_cm",
-                "width_in", "width_cm",
-                "height_in", "height_cm",
-                "weight_lbs", "weight_kg",
-                "ground_clearance_in", "ground_clearance_cm",
-                "front_tread_in", "front_tread_cm",
-                "rear_tread_in", "rear_tread_cm",
+                "wheelbase_in",
+                "wheelbase_cm",
+                "length_in",
+                "length_cm",
+                "width_in",
+                "width_cm",
+                "height_in",
+                "height_cm",
+                "weight_lbs",
+                "weight_kg",
+                "ground_clearance_in",
+                "ground_clearance_cm",
+                "front_tread_in",
+                "front_tread_cm",
+                "rear_tread_in",
+                "rear_tread_cm",
             }
-            dimensions = {k: first.get(k) for k in _dim_keys if first.get(k) is not None}
+            dimensions = {
+                k: first.get(k) for k in _dim_keys if first.get(k) is not None
+            }
             await replace_model_tire_options(conn, model_id, tire_options, dimensions)
 
         # 7. Tests
@@ -181,7 +192,9 @@ async def import_files(
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Import tractor models from JSON files")
+    parser = argparse.ArgumentParser(
+        description="Import tractor models from JSON files"
+    )
     parser.add_argument(
         "--input-dir",
         default="/app/json-data",

@@ -114,7 +114,12 @@ def _extract_years_from_specs(specs: list[dict]) -> tuple[int | None, int | None
 
 
 def _parse_description(html: HTMLParser) -> str | None:
-    for selector in ("div.tdArticleItemFull p", "div.tdArticleItem p", "article > p", "p"):
+    for selector in (
+        "div.tdArticleItemFull p",
+        "div.tdArticleItem p",
+        "article > p",
+        "p",
+    ):
         node = html.css_first(selector)
         if node:
             text = node.text(strip=True)

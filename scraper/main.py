@@ -80,13 +80,13 @@ async def process_pending_targets(
     Returns total number of targets processed.
     """
     crawl_fn = {
-        "manufacturer":       crawl_manufacturer_page,
-        "model":              crawl_model_page,
-        "model_engine":       crawl_model_subpage,
+        "manufacturer": crawl_manufacturer_page,
+        "model": crawl_model_page,
+        "model_engine": crawl_model_subpage,
         "model_transmission": crawl_model_subpage,
-        "model_dimensions":   crawl_model_subpage,
-        "model_tests":        crawl_model_subpage,
-        "model_photos":       crawl_model_subpage,
+        "model_dimensions": crawl_model_subpage,
+        "model_tests": crawl_model_subpage,
+        "model_photos": crawl_model_subpage,
     }[target_type]
 
     processed = 0

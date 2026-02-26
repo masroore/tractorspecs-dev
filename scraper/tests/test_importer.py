@@ -1,4 +1,5 @@
 """Unit tests for the importer helpers."""
+
 from __future__ import annotations
 
 import json
@@ -229,7 +230,9 @@ class TestImportFilesDryRun:
         doc = _make_valid_document()
         for i in range(3):
             doc["model"]["slug"] = f"model-{i}"
-            (tmp_path / f"model-{i}.json").write_text(json.dumps(doc, indent=2), encoding="utf-8")
+            (tmp_path / f"model-{i}.json").write_text(
+                json.dumps(doc, indent=2), encoding="utf-8"
+            )
 
         mock_pool = MagicMock()
         succeeded, failed = await import_files(

@@ -1,4 +1,5 @@
 """Unit tests for the JSON exporter serialisation helpers."""
+
 from __future__ import annotations
 
 import json
@@ -63,26 +64,34 @@ class TestJsonSerialisationRoundTrip:
 
     def test_serialises_without_error(self) -> None:
         doc = self._make_document()
-        serialised = json.dumps(doc, default=_default_serialiser, indent=2, ensure_ascii=False)
+        serialised = json.dumps(
+            doc, default=_default_serialiser, indent=2, ensure_ascii=False
+        )
         assert isinstance(serialised, str)
 
     def test_round_trip_decimals(self) -> None:
         doc = self._make_document()
-        serialised = json.dumps(doc, default=_default_serialiser, indent=2, ensure_ascii=False)
+        serialised = json.dumps(
+            doc, default=_default_serialiser, indent=2, ensure_ascii=False
+        )
         loaded = json.loads(serialised)
         assert loaded["model"]["horsepower_hp"] == pytest.approx(105.0)
         assert loaded["engine"]["displacement_l"] == pytest.approx(6.788)
 
     def test_round_trip_dates(self) -> None:
         doc = self._make_document()
-        serialised = json.dumps(doc, default=_default_serialiser, indent=2, ensure_ascii=False)
+        serialised = json.dumps(
+            doc, default=_default_serialiser, indent=2, ensure_ascii=False
+        )
         loaded = json.loads(serialised)
         assert loaded["tests"][0]["test_date_start"] == "2015-03-01"
         assert loaded["tests"][0]["test_date_end"] == "2015-04-30"
 
     def test_output_is_indented(self) -> None:
         doc = self._make_document()
-        serialised = json.dumps(doc, default=_default_serialiser, indent=2, ensure_ascii=False)
+        serialised = json.dumps(
+            doc, default=_default_serialiser, indent=2, ensure_ascii=False
+        )
         # Indented JSON has newlines
         assert "\n" in serialised
         # Top-level keys are indented with 2 spaces

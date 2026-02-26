@@ -20,6 +20,7 @@ python exporter.py --model john-deere-6105m
 # Dry-run (print paths without writing)
 python exporter.py --limit 5 --dry-run
 """
+
 from __future__ import annotations
 
 import argparse
@@ -57,7 +58,17 @@ def _row_to_dict(record: asyncpg.Record | None) -> dict[str, Any] | None:
     """Convert an asyncpg Record into a plain dict, skipping internal columns."""
     if record is None:
         return None
-    _skip = {"id", "model_id", "manufacturer_id", "series_id", "created_at", "updated_at", "name_search", "content_hash", "is_active"}
+    _skip = {
+        "id",
+        "model_id",
+        "manufacturer_id",
+        "series_id",
+        "created_at",
+        "updated_at",
+        "name_search",
+        "content_hash",
+        "is_active",
+    }
     return {k: v for k, v in dict(record).items() if k not in _skip}
 
 
@@ -157,23 +168,23 @@ async def _fetch_model_document(
 
     # Build manufacturer sub-document
     manufacturer: dict[str, Any] = {
-        "slug":         row["mfr_slug"],
-        "name":         row["mfr_name"],
-        "country":      row["mfr_country"],
-        "description":  row["mfr_description"],
+        "slug": row["mfr_slug"],
+        "name": row["mfr_name"],
+        "country": row["mfr_country"],
+        "description": row["mfr_description"],
         "founded_year": row["mfr_founded_year"],
-        "logo_path":    row["mfr_logo_path"],
+        "logo_path": row["mfr_logo_path"],
     }
 
     # Build series sub-document (nullable)
     series: dict[str, Any] | None = None
     if row["series_slug"]:
         series = {
-            "slug":                 row["series_slug"],
-            "name":                 row["series_name"],
-            "tractor_type":         row["series_tractor_type"],
+            "slug": row["series_slug"],
+            "name": row["series_name"],
+            "tractor_type": row["series_tractor_type"],
             "production_start_year": row["series_start_year"],
-            "production_end_year":  row["series_end_year"],
+            "production_end_year": row["series_end_year"],
         }
 
     # Build category sub-document (nullable)
@@ -186,21 +197,21 @@ async def _fetch_model_document(
 
     # Build model sub-document
     model: dict[str, Any] = {
-        "slug":                  row["model_slug"],
-        "name":                  row["model_name"],
-        "tractor_type":          row["tractor_type"],
+        "slug": row["model_slug"],
+        "name": row["model_name"],
+        "tractor_type": row["tractor_type"],
         "production_start_year": row["production_start_year"],
-        "production_end_year":   row["production_end_year"],
-        "horsepower_hp":         row["horsepower_hp"],
-        "description":           row["description"],
-        "drive_type":            row["drive_type"],
-        "steering_type":         row["steering_type"],
-        "brake_type":            row["brake_type"],
-        "cab_description":       row["cab_description"],
-        "fuel_tank_l":           row["fuel_tank_l"],
-        "def_tank_l":            row["def_tank_l"],
-        "seo_title":             row["seo_title"],
-        "seo_description":       row["seo_description"],
+        "production_end_year": row["production_end_year"],
+        "horsepower_hp": row["horsepower_hp"],
+        "description": row["description"],
+        "drive_type": row["drive_type"],
+        "steering_type": row["steering_type"],
+        "brake_type": row["brake_type"],
+        "cab_description": row["cab_description"],
+        "fuel_tank_l": row["fuel_tank_l"],
+        "def_tank_l": row["def_tank_l"],
+        "seo_title": row["seo_title"],
+        "seo_description": row["seo_description"],
     }
 
     # Specifications
@@ -296,16 +307,16 @@ async def _fetch_model_document(
 
     return {
         "schema_version": _SCHEMA_VERSION,
-        "exported_at":    datetime.utcnow().isoformat() + "Z",
-        "manufacturer":   manufacturer,
-        "series":         series,
-        "category":       category,
-        "model":          model,
+        "exported_at": datetime.utcnow().isoformat() + "Z",
+        "manufacturer": manufacturer,
+        "series": series,
+        "category": category,
+        "model": model,
         "specifications": specifications,
-        "engine":         engine,
-        "tire_options":   tire_options,
-        "tests":          tests,
-        "photos":         photos,
+        "engine": engine,
+        "tire_options": tire_options,
+        "tests": tests,
+        "photos": photos,
     }
 
 
@@ -341,17 +352,19 @@ async def export_models(
             log.warning("exporter.model_not_found", model_id=model_id)
             continue
 
-        mfr_slug   = document["manufacturer"]["slug"]
+        mfr_slug = document["manufacturer"]["slug"]
         model_slug_ = document["model"]["slug"]
-        dest_dir   = output_dir / mfr_slug
-        dest_path  = dest_dir / f"{model_slug_}.json"
+        dest_dir = output_dir / mfr_slug
+        dest_path = dest_dir / f"{model_slug_}.json"
 
         if dry_run:
             log.info("exporter.model.dry_run", path=str(dest_path))
         else:
             dest_dir.mkdir(parents=True, exist_ok=True)
             dest_path.write_text(
-                json.dumps(document, default=_default_serialiser, indent=2, ensure_ascii=False),
+                json.dumps(
+                    document, default=_default_serialiser, indent=2, ensure_ascii=False
+                ),
                 encoding="utf-8",
             )
             log.info("exporter.model.written", path=str(dest_path), model=model_slug_)

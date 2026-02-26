@@ -15,6 +15,7 @@ Returned dict shape
     "raw_data":          dict,
 }
 """
+
 from __future__ import annotations
 
 import re

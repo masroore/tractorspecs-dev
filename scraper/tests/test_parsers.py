@@ -15,7 +15,9 @@ class TestManufacturerParser:
         assert isinstance(results, list)
         assert len(results) > 0
 
-    def test_each_item_has_required_keys(self, sample_manufacturer_html: "HTMLParser") -> None:
+    def test_each_item_has_required_keys(
+        self, sample_manufacturer_html: "HTMLParser"
+    ) -> None:
         results = parse_manufacturer_listing(sample_manufacturer_html)
         for item in results:
             assert "name" in item
@@ -32,7 +34,9 @@ class TestManufacturerParser:
         for item in results:
             assert item["slug"].strip() != ""
 
-    def test_known_manufacturer_present(self, sample_manufacturer_html: "HTMLParser") -> None:
+    def test_known_manufacturer_present(
+        self, sample_manufacturer_html: "HTMLParser"
+    ) -> None:
         results = parse_manufacturer_listing(sample_manufacturer_html)
         names = [r["name"].lower() for r in results]
         assert any("john deere" in n for n in names)
@@ -44,7 +48,9 @@ class TestSeriesParser:
         assert "manufacturer" in result
         assert "series" in result
 
-    def test_manufacturer_has_description(self, sample_series_html: "HTMLParser") -> None:
+    def test_manufacturer_has_description(
+        self, sample_series_html: "HTMLParser"
+    ) -> None:
         result = parse_manufacturer_page(sample_series_html)
         assert result["manufacturer"].get("description", "") != ""
 
@@ -53,7 +59,9 @@ class TestSeriesParser:
         assert isinstance(result["series"], list)
         assert len(result["series"]) > 0
 
-    def test_each_series_has_name_and_models(self, sample_series_html: "HTMLParser") -> None:
+    def test_each_series_has_name_and_models(
+        self, sample_series_html: "HTMLParser"
+    ) -> None:
         result = parse_manufacturer_page(sample_series_html)
         for series in result["series"]:
             assert "name" in series
@@ -101,12 +109,15 @@ class TestModelParser:
 
     def test_missing_production_years_handled_gracefully(self) -> None:
         from selectolax.parser import HTMLParser
+
         html = HTMLParser("<html><body><h1>Acme 100</h1></body></html>")
         result = parse_model_page(html)
         assert result.get("production_start_year") is None
         assert result.get("production_end_year") is None
 
-    def test_all_spec_items_have_required_keys(self, sample_model_html: "HTMLParser") -> None:
+    def test_all_spec_items_have_required_keys(
+        self, sample_model_html: "HTMLParser"
+    ) -> None:
         result = parse_model_page(sample_model_html)
         for spec in result["specs"]:
             assert "group" in spec

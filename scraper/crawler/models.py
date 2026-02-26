@@ -24,11 +24,11 @@ _GAL_L_RE = re.compile(r"[\d.]+\s*gal\s*/\s*([\d.]+)\s*[Ll]", re.I)
 
 # Sub-page URL suffixes and their crawl-target types
 _SUBPAGE_SUFFIXES: list[tuple[str, str]] = [
-    ("-engine",       "model_engine"),
+    ("-engine", "model_engine"),
     ("-transmission", "model_transmission"),
-    ("-dimensions",   "model_dimensions"),
-    ("-tests",        "model_tests"),
-    ("-photos",       "model_photos"),
+    ("-dimensions", "model_dimensions"),
+    ("-tests", "model_tests"),
+    ("-photos", "model_photos"),
 ]
 
 

@@ -32,6 +32,7 @@ Returned dict shape
     "raw_data":             dict,          # leftover key-value pairs
 }
 """
+
 from __future__ import annotations
 
 import re
@@ -66,16 +67,33 @@ def _first_float(text: str) -> float | None:
 def parse_engine_page(html: HTMLParser) -> dict:
     """Return a structured engine dict from the engine sub-page HTML."""
     rows = _collect_rows(html)
-    result: dict = {k: None for k in (
-        "engine_manufacturer", "fuel_type", "cylinders", "cooling",
-        "displacement_ci", "displacement_l",
-        "bore_in", "bore_mm", "stroke_in", "stroke_mm",
-        "emissions_tier", "emission_control",
-        "rated_power_hp", "rated_power_kw", "rated_rpm",
-        "torque_lbft", "torque_nm", "torque_rpm",
-        "starter_type", "starter_volts", "starter_hp",
-        "oil_change_hours",
-    )}
+    result: dict = {
+        k: None
+        for k in (
+            "engine_manufacturer",
+            "fuel_type",
+            "cylinders",
+            "cooling",
+            "displacement_ci",
+            "displacement_l",
+            "bore_in",
+            "bore_mm",
+            "stroke_in",
+            "stroke_mm",
+            "emissions_tier",
+            "emission_control",
+            "rated_power_hp",
+            "rated_power_kw",
+            "rated_rpm",
+            "torque_lbft",
+            "torque_nm",
+            "torque_rpm",
+            "starter_type",
+            "starter_volts",
+            "starter_hp",
+            "oil_change_hours",
+        )
+    }
     raw: dict[str, str] = {}
 
     for key_raw, value_raw in rows:
@@ -127,7 +145,9 @@ def parse_engine_page(html: HTMLParser) -> dict:
                 result["stroke_in"] = float(m.group(1))
                 result["stroke_mm"] = float(m.group(2))
 
-        elif "emission tier" in key_lo or "emissions tier" in key_lo or key_lo == "tier":
+        elif (
+            "emission tier" in key_lo or "emissions tier" in key_lo or key_lo == "tier"
+        ):
             result["emissions_tier"] = value
 
         elif "emission control" in key_lo:

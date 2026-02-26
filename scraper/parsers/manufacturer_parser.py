@@ -31,7 +31,7 @@ def parse_manufacturer_listing(html: HTMLParser) -> list[dict[str, str]]:
             continue
 
         tractor_type = m.group(1)  # 'farm' or 'lawn'
-        slug = m.group(2)          # e.g. 'john-deere'
+        slug = m.group(2)  # e.g. 'john-deere'
 
         if not slug or slug in seen_slugs:
             continue

@@ -16,6 +16,7 @@ Returned list shape
     …
 ]
 """
+
 from __future__ import annotations
 
 import re
@@ -32,10 +33,7 @@ def parse_photos_page(html: HTMLParser) -> list[dict]:
     attribution = _parse_attribution(html)
     image_urls = _collect_image_urls(html)
 
-    return [
-        {"image_url": url, "attribution": attribution}
-        for url in image_urls
-    ]
+    return [{"image_url": url, "attribution": attribution} for url in image_urls]
 
 
 # ---------------------------------------------------------------------------
@@ -49,11 +47,7 @@ def _collect_image_urls(html: HTMLParser) -> list[str]:
     urls: list[str] = []
 
     for node in html.css("img, a"):
-        src = (
-            node.attributes.get("src") or
-            node.attributes.get("href") or
-            ""
-        )
+        src = node.attributes.get("src") or node.attributes.get("href") or ""
         if _PHOTO_URL_RE.search(src) and src not in seen:
             seen.add(src)
             urls.append(src)

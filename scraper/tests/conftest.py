@@ -12,7 +12,9 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 @pytest.fixture
 def sample_manufacturer_html() -> HTMLParser:
-    return HTMLParser((FIXTURES_DIR / "manufacturer_listing.html").read_text(encoding="utf-8"))
+    return HTMLParser(
+        (FIXTURES_DIR / "manufacturer_listing.html").read_text(encoding="utf-8")
+    )
 
 
 @pytest.fixture

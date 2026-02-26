@@ -33,6 +33,7 @@ Returned dict shape
     …
 ]
 """
+
 from __future__ import annotations
 
 import re
@@ -48,7 +49,9 @@ _HP_KW_RE = re.compile(r"([\d.]+)\s*hp\s*/\s*([\d.]+)\s*kw", re.I)
 _HP_ONLY_RE = re.compile(r"([\d.]+)\s*hp", re.I)
 _KW_ONLY_RE = re.compile(r"([\d.]+)\s*kw", re.I)
 _GPH_RE = re.compile(r"([\d.]+)\s*gal(?:lon)?s?/hr?", re.I)
-_LBS_KG_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*lbs?\s*/\s*([\d,]+(?:\.\d+)?)\s*kg", re.I)
+_LBS_KG_RE = re.compile(
+    r"([\d,]+(?:\.\d+)?)\s*lbs?\s*/\s*([\d,]+(?:\.\d+)?)\s*kg", re.I
+)
 _LBS_ONLY_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*lbs?", re.I)
 
 # Month names used to detect date rows

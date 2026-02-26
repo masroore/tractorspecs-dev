@@ -42,6 +42,7 @@ Returned dict shape
     },
 }
 """
+
 from __future__ import annotations
 
 import re
@@ -55,7 +56,9 @@ from selectolax.parser import HTMLParser
 
 _FLOAT_RE = re.compile(r"[\d,]+\.?\d*")
 _IN_CM_RE = re.compile(r"([\d.]+)\s*in\s*/\s*([\d.]+)\s*cm", re.I)
-_LBS_KG_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*lbs?\s*/\s*([\d,]+(?:\.\d+)?)\s*kg", re.I)
+_LBS_KG_RE = re.compile(
+    r"([\d,]+(?:\.\d+)?)\s*lbs?\s*/\s*([\d,]+(?:\.\d+)?)\s*kg", re.I
+)
 
 
 def _first_float(text: str) -> float | None:
@@ -128,18 +131,22 @@ def _parse_tire_options(html: HTMLParser) -> list[dict]:
                 continue
 
             if len(texts) >= 3:
-                tire_options.append({
-                    "option_label": texts[0] or "Standard",
-                    "front_tire": texts[1] or None,
-                    "rear_tire": texts[2] or None,
-                })
+                tire_options.append(
+                    {
+                        "option_label": texts[0] or "Standard",
+                        "front_tire": texts[1] or None,
+                        "rear_tire": texts[2] or None,
+                    }
+                )
             elif len(texts) == 2:
                 # 2-column variant: label + combined front/rear
-                tire_options.append({
-                    "option_label": texts[0] or "Standard",
-                    "front_tire": texts[1] or None,
-                    "rear_tire": None,
-                })
+                tire_options.append(
+                    {
+                        "option_label": texts[0] or "Standard",
+                        "front_tire": texts[1] or None,
+                        "rear_tire": None,
+                    }
+                )
 
         break  # Only parse the first matching table
 
@@ -151,14 +158,14 @@ def _parse_tire_options(html: HTMLParser) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 _DIM_KEYS = {
-    "wheelbase":         ("wheelbase_in", "wheelbase_cm"),
-    "length":            ("length_in", "length_cm"),
-    "width":             ("width_in", "width_cm"),
-    "height":            ("height_in", "height_cm"),
-    "weight":            ("weight_lbs", "weight_kg"),
-    "ground clearance":  ("ground_clearance_in", "ground_clearance_cm"),
-    "front tread":       ("front_tread_in", "front_tread_cm"),
-    "rear tread":        ("rear_tread_in", "rear_tread_cm"),
+    "wheelbase": ("wheelbase_in", "wheelbase_cm"),
+    "length": ("length_in", "length_cm"),
+    "width": ("width_in", "width_cm"),
+    "height": ("height_in", "height_cm"),
+    "weight": ("weight_lbs", "weight_kg"),
+    "ground clearance": ("ground_clearance_in", "ground_clearance_cm"),
+    "front tread": ("front_tread_in", "front_tread_cm"),
+    "rear tread": ("rear_tread_in", "rear_tread_cm"),
 }
 
 
